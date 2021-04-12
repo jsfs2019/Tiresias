@@ -1,0 +1,9 @@
+switch_index,gpu_index,gpu_model
+0,0,K80
+1,0,K80
+2,1,P100
+3,1,P100
+4,2,V100
+5,3,A100
+6,1,P100
+7,2,V100
