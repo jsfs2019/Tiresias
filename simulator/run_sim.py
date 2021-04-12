@@ -76,6 +76,11 @@ flags.DEFINE_string('cluster_spec', None,
                     num_switch,num_node_p_switch,num_gpu_p_node
                     int,int,int''')
 
+flags.DEFINE_string('gpu_model_spec', None,
+                '''Part of gpu model spec: gpu model spec file,
+                Spec format:
+                    switch_index,gpu_index,gpu_model
+                    int,int,str''')
 flags.DEFINE_boolean('print', False, 
                 '''Enable print out information, default is False''')
 flags.DEFINE_boolean('flush_stdout', True, 
@@ -168,6 +173,14 @@ def parse_cluster_spec():
     util.print_fn("num_cpu_p_node: %d" % FLAGS.num_cpu_p_node)
     util.print_fn("mem_p_node: %d" % FLAGS.mem_p_node)
 
+    if FLAGS.gpu_model_spec:
+        print(FLAGS.gpu_model_spec)
+        gpu_model = {}
+        with open(FLAGS.gpu_model_spec, 'rb') as csvfile:
+            reader = csv.DictReader(csvfile, delimiter=',')
+            for row in reader:
+                gpu_model[int(row['switch_index'])] = row['gpu_model']
+        FLAGS.gpu_model_dict = gpu_model
     '''init infra'''
     CLUSTER.init_infra()
     # util.print_fn(lp.prepare_cluster_info())

@@ -15,13 +15,14 @@ JOBS = jobs.JOBS
 
 class _Switch(object):
 
-    def __init__(self, id, num_node=0, num_gpu_p_node=0, num_cpu_p_node=0, mem_p_node=0):
+    def __init__(self, id, num_node=0, num_gpu_p_node=0, num_cpu_p_node=0, mem_p_node=0, gpu_model=None):
         self.num_node = num_node
         self.num_gpu_p_node = num_gpu_p_node
         self.num_cpu_p_node = num_cpu_p_node
         self.mem_p_node = mem_p_node
         self.id = id
         self.node_list = list()
+        self.gpu_model = gpu_model
         util.print_fn('  Switch[%d] has %d nodes' % (id, num_node))
 
     def add_nodes(self, num_node=0, num_gpu_p_node=0, num_cpu_p_node=0, mem_p_node=0):

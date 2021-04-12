@@ -84,7 +84,7 @@ class _Cluster(object):
 
         '''create/init switch and node objects'''        
         for s in range(0, self.num_switch):
-            tmp_s = _Switch(s, self.num_node_p_switch, self.num_gpu_p_node, self.num_cpu_p_node, self.mem_p_node) 
+            tmp_s = _Switch(s, self.num_node_p_switch, self.num_gpu_p_node, self.num_cpu_p_node, self.mem_p_node, FLAGS.gpu_model_dict[s]) 
             tmp_s.add_nodes(self.num_node_p_switch, self.num_gpu_p_node, self.num_cpu_p_node, self.mem_p_node)
             self.switch_list.append(tmp_s)
 
@@ -898,6 +898,7 @@ class _Cluster(object):
         for switch in self.switch_list:
             ret = switch.ms_yarn_alloc_res(job)
             if ret == True:
+                job['gpus'].append(switch.gpu_model)
                 return True
             else:
                 continue
