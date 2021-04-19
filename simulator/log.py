@@ -105,7 +105,7 @@ class _Log(object):
             if FLAGS.scheme == 'count':
                 log_writer.writerow(['time', 'job_id', 'num_gpu', 'submit_time', 'start_time', 'end_time', 'executed_time', 'JCT', 'duration', 'pending_time', 'preempt', 'resume', 'promote'])
             else:
-                log_writer.writerow(['time', 'job_id', 'num_gpu', 'submit_time', 'start_time', 'end_time', 'executed_time', 'JCT', 'duration', 'pending_time', 'preempt', 'promote'])
+                log_writer.writerow(['time', 'job_id', 'num_gpu', 'submit_time', 'start_time', 'end_time', 'executed_time', 'JCT', 'duration', 'pending_time', 'preempt', 'promote', 'ratio'])
         fd.close()
 
 
@@ -346,7 +346,7 @@ class _Log(object):
         if FLAGS.scheme == 'count':
             self.job_list.append([event_time, job['job_id'], job['num_gpu'], job['submit_time'], job['start_time'], job['end_time'], executed_time, jct, job['duration'], job['pending_time'], job['preempt'], job['resume'], job['promote']])
         else:
-            self.job_list.append([event_time, job['job_id'], job['num_gpu'], job['submit_time'], job['start_time'], job['end_time'], executed_time, jct, job['duration'], job['pending_time'], job['preempt'], job['promote']])
+            self.job_list.append([event_time, job['job_id'], job['num_gpu'], job['submit_time'], job['start_time'], job['end_time'], executed_time, jct, job['duration'], job['pending_time'], job['preempt'], job['promote'], job['ratio']])
 
 
         if len(self.job_list) >= 1:

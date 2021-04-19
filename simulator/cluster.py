@@ -891,7 +891,7 @@ class _Cluster(object):
         # return node_release
 
 
-    def ms_yarn_placement(self, job):
+    def heterogeneous_ms_yarn_placement(self, job):
         '''
         MS_YARN, all gpus should come from the same switch
         '''
@@ -904,6 +904,17 @@ class _Cluster(object):
                 continue
         return False
 
+    def ms_yarn_placement(self, job):
+        '''
+        MS_YARN, all gpus should come from the same switch
+        '''
+        for switch in self.switch_list:
+            ret = switch.ms_yarn_alloc_res(job)
+            if ret == True:
+                return True
+            else:
+                continue
+        return False
 
     def random_placement(self, job):    
         '''

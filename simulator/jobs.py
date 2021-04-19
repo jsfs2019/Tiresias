@@ -386,12 +386,12 @@ class _TFJobs(object):
     def remove_from_pending(self, job, event_time):
         job['status'] = 'RUNNING'
         job['start_time'] = event_time
-        ratio = 1
+        job['ratio'] = 1
         if job['gpus']:
             gpu_model_idx = models.get_gpu_model_idx(job['gpus'][0])
             if gpu_model_idx != -1:
-                ratio = job['model']['speeds'][gpu_model_idx]
-        job['end_time'] = job['start_time'] + job['duration'] / ratio
+                job['ratio'] = job['model']['speeds'][gpu_model_idx]
+        job['end_time'] = job['start_time'] + job['duration'] / job['ratio']
         job['pending_time'] = job['start_time'] - job['submit_time']
 
         self.pending_jobs.remove(job)

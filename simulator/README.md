@@ -31,6 +31,7 @@ GPU cluster simulator in Tiresias
        * ``model_name``: what's the model in that job. This is used to estimate the CPU and GPU memory usage, and tensor size (in MB, only consider the large tensors).
        * ``duration``: how long this job will run. This information is used to generate job completion event by the simulator.
        * ``interval``: job submission interval from this job to the next job
+       * ``ratio``: the speed ratio relative to running K80
     
 
 3. How to run the simulator?
