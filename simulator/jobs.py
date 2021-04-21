@@ -386,15 +386,37 @@ class _TFJobs(object):
     def remove_from_pending(self, job, event_time):
         job['status'] = 'RUNNING'
         job['start_time'] = event_time
-        job['ratio'] = 1
-        if job['gpus']:
-            gpu_model_idx = models.get_gpu_model_idx(job['gpus'][0])
-            if gpu_model_idx != -1:
-                job['ratio'] = job['model']['speeds'][gpu_model_idx]
-        job['end_time'] = job['start_time'] + job['duration'] / job['ratio']
+        job['end_time'] = self.calculate_end_time(job)
         job['pending_time'] = job['start_time'] - job['submit_time']
 
         self.pending_jobs.remove(job)
+
+    def get_ratio(self, job, gpu_model=None):
+        if not gpu_model:
+            if job['gpus']:
+                gpu_model = job['gpus'][-1][0]
+        if gpu_model:
+            return job['model']['speeds'][models.get_gpu_model_idx(gpu_model)]
+        else:
+            return 1
+
+    def update_ratio(self, job):
+        job['ratio'] = self.get_ratio(job)
+
+    def calculate_end_time(self, job):
+        last_time = job['start_time']
+        if job['gpus']:
+            last_time = job['gpus'][-1][1]
+        return last_time + self.calculate_remain_time(job) / job['ratio']
+
+    def calculate_remain_time(self, job):
+        remain_time = job['duration']
+        start_time = job['start_time']
+        for gpu_model, event_time in job['gpus']:
+            ratio = job['model']['speeds'][models.get_gpu_model_idx(gpu_model)]
+            remain_time -= (event_time - start_time) * ratio
+            start_time = event_time
+        return remain_time
 
     def move_to_pending(self, job):
         job['status'] = 'PENDING'
@@ -486,6 +508,16 @@ class _TFJobs(object):
                             (event['time'], len(event['start_jobs']), len(event['end_jobs'])))
 
         util.print_fn(' ')
+
+    def remove_job_end_event(self, job):
+        tmp_dict = util.search_dict_list(self.job_events, 'time', job['end_time'])
+        if tmp_dict:
+            for end_job in tmp_dict['end_jobs']:
+                if end_job['job_id'] == job['job_id']:
+                    tmp_dict['end_jobs'].remove(end_job)
+                    break
+            if len(tmp_dict['end_jobs']) == 0:
+                self.job_events.remove(tmp_dict)
 
     def add_job_end_event(self, job):
         #for job end 

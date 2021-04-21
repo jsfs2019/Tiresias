@@ -199,6 +199,8 @@ def try_get_job_res(job):
         ret = CLUSTER.ms_yarn_placement(job)
     elif FLAGS.scheme == 'h_yarn':
         ret = CLUSTER.heterogeneous_ms_yarn_placement(job)
+    elif FLAGS.scheme == 'h_s_yarn':
+        ret = CLUSTER.heterogeneous_swap_ms_yarn_placement(job)
     elif FLAGS.scheme == 'balance':
         ret = lp.placement(job)
         # ret = lp.min_new_job(job)

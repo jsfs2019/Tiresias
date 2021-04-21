@@ -34,10 +34,10 @@ m_mem = [1, 1, 1, 1, 1, 1, 1, 1, 1]
 worker_mem = 5
 ps_mem = 8
 per_worker_mem = 0.2
-
+model_list = ['K80', 'P100', 'V100', 'A100']
 
 def get_gpu_model_idx(gpu_model):
-    return ['K80', 'P100', 'V100', 'A100'].index(gpu_model)
+    return model_list.index(gpu_model)
 
 def get_model(model_name):
     '''

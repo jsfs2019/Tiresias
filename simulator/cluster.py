@@ -7,10 +7,11 @@ from switch import _Switch
 from node import _Node
 import util
 import flags 
-# import jobs
+import jobs
+import models
 # import log
 
-# JOBS = jobs.JOBS
+JOBS = jobs.JOBS
 # LOG = log.LOG
 FLAGS = flags.FLAGS
 
@@ -88,6 +89,8 @@ class _Cluster(object):
             tmp_s.add_nodes(self.num_node_p_switch, self.num_gpu_p_node, self.num_cpu_p_node, self.mem_p_node)
             self.switch_list.append(tmp_s)
 
+        self.switch_list = [sw for sw in self.switch_list if sw.gpu_model in models.model_list]
+        self.switch_list.reverse()
         util.print_fn('Cluster is ready to use')
         self.print_cluster_spec()
 
@@ -898,11 +901,66 @@ class _Cluster(object):
         for switch in self.switch_list:
             ret = switch.ms_yarn_alloc_res(job)
             if ret == True:
-                job['gpus'].append(switch.gpu_model)
+                assert len(JOBS.job_events) != 0
+                time = JOBS.job_events[0]['time']
+                job['gpus'].append((switch.gpu_model, time))
                 return True
             else:
                 continue
         return False
+
+    def heterogeneous_swap_ms_yarn_placement(self, job):
+        '''
+        MS_YARN, all gpus should come from the same switch
+        '''
+        for switch in self.switch_list:
+            ret = switch.ms_yarn_alloc_res(job)
+            if ret == True:
+                assert len(JOBS.job_events) != 0
+                time = JOBS.job_events[0]['time']
+                gpu_model = switch.gpu_model
+                c_rj_list = []
+                for rj in JOBS.job_list:
+                    if rj['status'] == 'RUNNING':
+                        assert len(rj['gpus']) != 0
+                        r_gpu_model = rj['gpus'][-1][0]
+                        ratio_i = JOBS.get_ratio(job, gpu_model=gpu_model)
+                        ratio_j = JOBS.get_ratio(job, gpu_model=r_gpu_model)
+                        remain_time = JOBS.calculate_remain_time(job)
+                        r_ratio_i = JOBS.get_ratio(rj, gpu_model=r_gpu_model)
+                        r_ratio_j = JOBS.get_ratio(rj, gpu_model=gpu_model)
+                        r_remain_time = JOBS.calculate_remain_time(rj)
+                        gain = remain_time/ratio_j + r_remain_time/r_ratio_j - (remain_time/ratio_i + r_remain_time/r_ratio_i)
+                        if gain > 0:
+                            c_rj_list.append((rj, gain))
+                r_c_rj_list = sorted(c_rj_list, key=lambda k: k[1], reverse=True)
+                has_exchanged = False
+                for rj, _ in r_c_rj_list:
+                    r_switch = self.get_switch_by_id(rj['switch_id'])
+                    if r_switch and r_switch.try_ms_yarn_re_alloc_res(rj, job)  and switch.try_ms_yarn_re_alloc_res(job, rj):
+                        rj['gpus'].append((switch.gpu_model, time))
+                        job['gpus'].append((r_switch.gpu_model, time))
+                        JOBS.update_ratio(rj)
+                        JOBS.update_ratio(job)
+                        has_exchanged = True
+                        # Remove old event and update job end event
+                        rj['end_time'] = JOBS.calculate_end_time(rj)
+                        JOBS.remove_job_end_event(rj)
+                        JOBS.add_job_end_event(rj)
+                        break
+                if not has_exchanged:
+                    job['gpus'].append((switch.gpu_model, time))
+                    JOBS.update_ratio(job)
+                return True
+            else:
+                continue
+        return False
+
+    def get_switch_by_id(self, switch_id):
+        for switch in self.switch_list:
+            if switch.id == switch_id:
+                return switch
+        return None
 
     def ms_yarn_placement(self, job):
         '''
@@ -1444,11 +1502,12 @@ class _Cluster(object):
                 job['status'] = 'ERROR'
                 return False
 
-            switch = self.switch_list[placement['switch']]
-            ret = switch.release_gpus(placement['nodes'])
-            if ret == False:
-                job['status'] = 'ERROR'
-                return False
+            for switch in self.switch_list:
+                if switch.id == placement['switch']:
+                    ret = switch.release_gpus(placement['nodes'])
+                    if ret == False:
+                        job['status'] = 'ERROR'
+                        return False
 
         job['status'] = 'END'
         util.print_fn('**** job[%d] completed' % job['job_idx'])
@@ -1490,11 +1549,12 @@ class _Cluster(object):
                 job['status'] = 'ERROR'
                 return False
 
-            switch = self.switch_list[placement['switch']]
-            ret = switch.release_job_res(placement['nodes'])
-            if ret == False:
-                job['status'] = 'ERROR'
-                return False
+            for switch in self.switch_list:
+                if switch.id == placement['switch']:
+                    ret = switch.release_job_res(placement['nodes'])
+                    if ret == False:
+                        job['status'] = 'ERROR'
+                        return False
 
         job['status'] = 'END'
         util.print_fn('**** job[%d] completed' % job['job_idx'])

@@ -195,6 +195,19 @@ class _Switch(object):
 
         return ret
 
+    def try_ms_yarn_re_alloc_res(self, t_job, a_job):
+        '''
+        t_job: Transferred task
+        a_job: Assigned task
+        '''
+        self.release_job_res(t_job)
+        ret = self.ms_yarn_alloc_res(a_job)
+        if not ret:
+            self.ms_yarn_alloc_res(t_job)
+            return False
+        else:
+            return True
+
     def ms_yarn_alloc_res(self, job):
         '''
         ms_yarn allocates res from a single switch, 
@@ -211,7 +224,8 @@ class _Switch(object):
             ret = self.try_cross_node_alloc(job)
         else:
             ret = self.try_single_node_alloc(job)
-
+        if ret:
+            job['switch_id'] = self.id
         return ret
 
     def release_gpus(self, nodes):
